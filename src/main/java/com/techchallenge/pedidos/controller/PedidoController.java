@@ -22,7 +22,7 @@ public class PedidoController {
     @PostMapping
     public ResponseEntity<String> criarPedido(@RequestBody Pedido pedido) {
         try {
-            return pedidoUseCase.criarPedido(pedido);
+            return pedidoUseCase.validarClientePedido(pedido);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }

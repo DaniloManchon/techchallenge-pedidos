@@ -1,14 +1,16 @@
-package com.techchallenge.pedidos.service;
+package com.techchallenge.pedidos.usecase;
 
-
-
+import com.techchallenge.pedidos.feign.ClientesInterface;
+import com.techchallenge.pedidos.model.Cliente;
 import com.techchallenge.pedidos.model.Pedido;
 import com.techchallenge.pedidos.repository.PedidoRepository;
 import com.techchallenge.pedidos.statemachine.EstadoPedido;
 import com.techchallenge.pedidos.statemachine.EventoPedido;
-import com.techchallenge.pedidos.usecase.PedidoUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import netscape.javascript.JSException;
+import netscape.javascript.JSObject;
+import org.bson.json.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +20,6 @@ import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +33,50 @@ public class PedidoUseCaseImpl implements PedidoUseCase {
 
     @Autowired
     PedidoRepository pedidoRepository;
+
+    @Autowired
+    ClientesInterface clientesInterface;
+
+    public ResponseEntity<String> validarClientePedido(Pedido pedido){
+        if (pedido.getCliente()!= null) {
+           Cliente validarcliente = clientesInterface.validarCliente(pedido.getCliente().getCpf()).getBody();
+            if (validarcliente == null) {
+                clientesInterface.criarCliente(new Cliente(
+                        pedido.getCliente().getCpf(),
+                        pedido.getCliente().getNome(),
+                        pedido.getCliente().getEmail(),
+                        pedido.getCliente().isMarketing()
+                ));
+                return criarPedido(pedido);
+            } else {
+                log.info("cliente {} ja cadastrado", validarcliente.getCpf());
+                return criarPedido(pedido);
+            }
+        } else {
+            log.info("Cliente nao quis se cadastrar");
+            return criarPedido(pedido);
+        }
+    }
+    public ResponseEntity<String> validarProdutoPedido(Pedido pedido){
+        if (pedido.getCliente()!= null) {
+            Cliente validarcliente = clientesInterface.validarCliente(pedido.getCliente().getCpf()).getBody();
+            if (validarcliente == null) {
+                clientesInterface.criarCliente(new Cliente(
+                        pedido.getCliente().getCpf(),
+                        pedido.getCliente().getNome(),
+                        pedido.getCliente().getEmail(),
+                        pedido.getCliente().isMarketing()
+                ));
+                return criarPedido(pedido);
+            } else {
+                log.info("cliente {} ja cadastrado", validarcliente.getCpf());
+                return criarPedido(pedido);
+            }
+        } else {
+            log.info("Cliente nao quis se cadastrar");
+            return criarPedido(pedido);
+        }
+    }
 
     public ResponseEntity<String> criarPedido(Pedido pedido) {
         try {
@@ -68,7 +113,6 @@ public class PedidoUseCaseImpl implements PedidoUseCase {
         }
     }
 
-
     public ResponseEntity<String> atualizarEstadoPedido(long sequencia, EventoPedido eventoPedido) {
         StateMachine<EstadoPedido, EventoPedido> stateMachine = build(sequencia);
         Optional<Pedido> pedidoData_ = pedidoRepository.findBySequencia(sequencia);
@@ -101,6 +145,7 @@ public class PedidoUseCaseImpl implements PedidoUseCase {
         return new ResponseEntity<>(pedidos, HttpStatus.OK);
     }
 
+    //---State Machine---
     private void sendEvent(long sequencia, StateMachine<EstadoPedido, EventoPedido> stateMachine, EventoPedido eventoPedido) {
         Message mensagem = MessageBuilder.withPayload(eventoPedido)
                 .setHeader(SEQUENCIA, sequencia)

@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 public interface PedidoUseCase {
+    ResponseEntity<String> validarClientePedido(Pedido pedido);
+
     ResponseEntity<String> criarPedido(Pedido pedido);
 
     ResponseEntity<Pedido> buscarPedido(long sequencia);
